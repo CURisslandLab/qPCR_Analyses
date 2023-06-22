@@ -13,7 +13,43 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
-qPCR_table <- read.table("05232023_Collagen_Test_Depurated.txt", fill = TRUE)
+InputPath = "./20230622_ELG_TGFBTC_TR1_depurated.txt"
+
+InputPathTreatmentFile = "./Treatment_Table.txt"
+
+qPCR_pos_table = cbind(qPCR_pos_table, 
+                       FullFactor = paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID))
+
+
+factor_pos_table <- levels(as.factor(paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID)))
+
+out_vec_RawCt <- c()
+
+names_vec_RawCt <- c()
+
+for (i in 1:length(factor_pos_table)) {
+  
+  
+  indexOfPattern <- grep(pattern = factor_pos_table[i],
+                         x = qPCR_pos_table$FullFactor)
+  
+  RegExpr_Look4Pattern <- paste0("^",
+                                 qPCR_pos_table$Pos[indexOfPattern],
+                                 "$", collapse = "|")
+  
+  indexofRawCt <- grep(pattern = RegExpr_Look4Pattern,
+                               x = qPCR_table$V3)
+  
+  
+  Raw_Ct <- qPCR_table$V6[indexofRawCt]
+  
+  out_vec_RawCt[i] <- Raw_Ct
+    
+  names_vec_RawCt[i] <- factor_pos_table[i]
+  
+}
+
+names(out_vec_RawCt) <- names_vec_RawCt
 
 
 ### defining samples
