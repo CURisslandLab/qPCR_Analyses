@@ -13,15 +13,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
-InputPath = "./20230622_ELG_TGFBTC_TR1_depurated.txt"
+InputPath1 = "./20230622_ELG_TGFBTC_TR1_depurated.txt"
+
+InputPath2 = "./20230622_ELG_TGFBTC_tr2_depurated.txt"
 
 InputPathTreatmentFile = "./Treatment_Table.txt"
 
-qPCR_pos_table = cbind(qPCR_pos_table, 
-                       FullFactor = paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID))
+
+qPCR_table1 <- read.table(InputPath1, fill = TRUE)
+
+qPCR_table2 <- read.table(InputPath2, fill = TRUE)
+
+qPCR_pos_table <- read.table(InputPathTreatmentFile, fill = TRUE, header = T)
 
 
-factor_pos_table <- levels(as.factor(paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID)))
+qPCR_pos_table_Look <- as.data.frame(cbind(pos_ID = paste0(qPCR_pos_table$Pos, "_", qPCR_pos_table$Plate_ID),
+                             Treat_ID = paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID)))
+
+
+
+factor_pos_table <- levels(as.factor(qPCR_pos_table_Look$Treat_ID))
 
 out_vec_RawCt <- c()
 
@@ -31,10 +42,20 @@ for (i in 1:length(factor_pos_table)) {
   
   
   indexOfPattern <- grep(pattern = factor_pos_table[i],
-                         x = qPCR_pos_table$FullFactor)
+                         x = qPCR_pos_table_Look$Treat_ID)
+  
+  positionsofSamples <- qPCR_pos_table_Look$pos_ID[indexOfPattern]
+  
+  ## need to iterate only based on the number of plates and not actually the number of samples so that the complementary information from distinct plates can then be consolidated into joined entries.
+  
+  
+  
+  for (j in 1:length()) {
+    
+  }
   
   RegExpr_Look4Pattern <- paste0("^",
-                                 qPCR_pos_table$Pos[indexOfPattern],
+                                 ,
                                  "$", collapse = "|")
   
   indexofRawCt <- grep(pattern = RegExpr_Look4Pattern,
