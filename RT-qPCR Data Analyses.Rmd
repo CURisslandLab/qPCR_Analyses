@@ -13,64 +13,145 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
-InputPath1 = "./20230622_ELG_TGFBTC_TR1_depurated.txt"
+### example mutliple plates
 
-InputPath2 = "./20230622_ELG_TGFBTC_tr2_depurated.txt"
+PlatesDIRs = list("./20230622_ELG_TGFBTC_TR1_depurated.txt",
+                 "./20230622_ELG_TGFBTC_tr2_depurated.txt")
 
-InputPathTreatmentFile = "./Treatment_Table.txt"
-
-
-qPCR_table1 <- read.table(InputPath1, fill = TRUE)
-
-qPCR_table2 <- read.table(InputPath2, fill = TRUE)
-
-qPCR_pos_table <- read.table(InputPathTreatmentFile, fill = TRUE, header = T)
+InputPathTreatmentFiles = "./Treatment_Table.txt"
 
 
-qPCR_pos_table_Look <- as.data.frame(cbind(pos_ID = paste0(qPCR_pos_table$Pos, "_", qPCR_pos_table$Plate_ID),
-                             Treat_ID = paste0(qPCR_pos_table$Gene_ID, "_", qPCR_pos_table$Sample_ID)))
+### example 1 plate
+
+PlatesDIRs = "./20230622_ELG_TGFBTC_TR1_depurated.txt"
+
+InputPathTreatmentFiles0 = "./Treatment_Table.txt"
+
+InputPathTreatmentFiles1 = read.table(InputPathTreatmentFiles0,
+                                    fill = TRUE,
+                                    header = T)[which(read.table(InputPathTreatmentFiles0,fill = TRUE, header = T)$Plate_ID == 1),]
+
+write.table(file = "cropped_Treatment_Table.txt", x = InputPathTreatmentFiles1)
+
+InputPathTreatmentFiles = "./cropped_Treatment_Table.txt"
 
 
 
-factor_pos_table <- levels(as.factor(qPCR_pos_table_Look$Treat_ID))
+MinusRevTranscriptaseC_Pattern = "mRT"
 
-out_vec_RawCt <- c()
+MinusRevTranscriptaseC_boundary = 30
 
-names_vec_RawCt <- c()
+EmptyWells_Pattern = "E"
 
-for (i in 1:length(factor_pos_table)) {
+EmptyWells_boundary = 15
+
+H2O_Pattern = "H2O"
+
+H2O_boundary = 20
+
+#### main development
+
+running_example <- DeltaDeltaCtCc(qPCR_List_OR_Dir = PlatesDIRs,
+                                  Treatment_Table_Dir = InputPathTreatmentFiles)
+
+
+### Reviewing controls
+
+#### RT
+
+MinusRevTranscriptaseC_runner <- running_example[grep(pattern = MinusRevTranscriptaseC_Pattern, x = running_example[,"gene_treat_ID"]),]
+
+if( any(as.numeric(MinusRevTranscriptaseC_runner[,"Raw_Ct"]) > 0 & as.numeric(MinusRevTranscriptaseC_runner[,"Raw_Ct"]) < MinusRevTranscriptaseC_boundary) ) {
   
-  
-  indexOfPattern <- grep(pattern = factor_pos_table[i],
-                         x = qPCR_pos_table_Look$Treat_ID)
-  
-  positionsofSamples <- qPCR_pos_table_Look$pos_ID[indexOfPattern]
-  
-  ## need to iterate only based on the number of plates and not actually the number of samples so that the complementary information from distinct plates can then be consolidated into joined entries.
-  
-  
-  
-  for (j in 1:length()) {
-    
-  }
-  
-  RegExpr_Look4Pattern <- paste0("^",
-                                 ,
-                                 "$", collapse = "|")
-  
-  indexofRawCt <- grep(pattern = RegExpr_Look4Pattern,
-                               x = qPCR_table$V3)
-  
-  
-  Raw_Ct <- qPCR_table$V6[indexofRawCt]
-  
-  out_vec_RawCt[i] <- Raw_Ct
-    
-  names_vec_RawCt[i] <- factor_pos_table[i]
+  warning("your minus RT controls are within the forbidden boundaries")
   
 }
 
-names(out_vec_RawCt) <- names_vec_RawCt
+running_example1 = running_example[-c(grep(pattern = MinusRevTranscriptaseC_Pattern, x = running_example[,"gene_treat_ID"])),]
+
+#### Empty wells
+
+EmptyWells_runner <- running_example1[grep(pattern = EmptyWells_Pattern, x = running_example1[,"gene_treat_ID"]),]
+
+if( any(as.numeric(EmptyWells_runner[,"Raw_Ct"]) > 0 & as.numeric(EmptyWells_runner[,"Raw_Ct"]) < EmptyWells_boundary) ) {
+  
+  warning("your empty wells are within the forbidden boundaries")
+  
+}
+
+running_example2 = running_example1[-c(grep(pattern = EmptyWells_Pattern, x = running_example1[,"gene_treat_ID"])),]
+
+#### H2O
+
+H2O_runner <- running_example2[grep(pattern = H2O_Pattern, x = running_example2[,"gene_treat_ID"]),]
+
+if( any(as.numeric(H2O_runner[,"Raw_Ct"]) > 0 & as.numeric(H2O_runner[,"Raw_Ct"]) < H2O_boundary) ) {
+  
+  warning("your H2O are within the forbidden boundaries")
+  
+}
+
+running_example3 = running_example2[-c(grep(pattern = H2O_Pattern, x = running_example2[,"gene_treat_ID"])),]
+
+### optional return controls
+
+control_matrices_RawCts <- list(MinusRevTranscriptaseC_runner,
+                                EmptyWells_runner,
+                                H2O_runner)
+
+### continue with calculating deltadeltaCts per plate (the assumption is that every biological replicate has been run in the same plate as its control; other scenarios imply non-accounted technical variance)
+
+
+if (length(unique(as.numeric(running_example3[,"plate_ID"]))) != length(PlatesDIRs)) {
+  
+  stop("ERROR: number of plates differ from what is written in the Treatment File")
+  
+}
+
+
+
+for (i in 1:length(PlatesDIRs)) {
+  
+  runner_plate_i <- running_example3[which(running_example3[,"plate_ID"] == unique(as.numeric(running_example3[,"plate_ID"]))[i]),]
+  
+  genes_runner <- apply(X = list2DF(strsplit(x = runner_plate_i[,"gene_treat_ID"], split = "_"))[1,], MARGIN = 2, FUN = as.character )
+  
+  remaining_DF <- list2DF(strsplit(x = runner_plate_i[,"gene_treat_ID"], split = "_"))[-1,]
+  
+  Treatment_IDs <- tidyr::unite(as.data.frame(t(remaining_DF)), col = "Treatment")
+  
+  Full_plate_runner_i <- cbind(Raw_Ct = runner_plate_i[,"Raw_Ct"], 
+                               Gene_ID = genes_runner,
+                               Treatment_ID = Treatment_IDs)
+  
+  
+  treatments_iter <- unique(Full_plate_runner_i$Treatment)
+  
+  for (j in 1:length(treatments_iter)) {
+    
+    treatment_specific_df <- Full_plate_runner_i[grep(pattern = treatments_iter[j], Full_plate_runner_i$Treatment),]
+    
+    #### calculate DeltaCts by subtracting target genes from control ones:
+    
+    
+  }
+  
+  
+  #### calculate DeltaDeltaCts by using the formula 2**(-(Treated_abundances-Control_abundances))
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### defining samples
