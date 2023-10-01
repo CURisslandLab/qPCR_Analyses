@@ -260,7 +260,54 @@ DeltaDeltaCtCc <- function(qPCR_List_OR_Dir,
                                     InputPathTreatmentFile = Treatment_Table_Dir)
 
 
-  return(RawCt_DF)
+  #return(RawCt_DF)
+
+  RawCt_DF[c(which(is.na(as.character(RawCt_DF[,1])))),1] <- 0
+
+  ### building controls data matrices
+
+  #### minus RT control
+
+  MinusRevT_mat <- RawCt_DF[c(grep(pattern = MinusRevTranscriptaseC_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"]))),]
+
+  MinusRevT_mat[c(which(as.numeric(MinusRevT_mat[,1]) > MinusRevTranscriptaseC_boundary)),1] <- 0
+
+  #### empty wells control
+
+  EmptyWells_mat <- RawCt_DF[c(grep(pattern = EmptyWells_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"]))),]
+
+  EmptyWells_mat[c(which(as.numeric(EmptyWells_mat[,1]) > EmptyWells_boundary)),1] <- 0
+
+  #### H2O control
+
+  H2O_mat <- RawCt_DF[c(grep(pattern = H2O_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"]))),]
+
+  H2O_mat[c(which(as.numeric(H2O_mat[,1]) > H2O_boundary)),1] <- 0
+
+
+  #### remove controls from original matrix
+
+  Control_depleted_mat <- RawCt_DF[-c(grep(pattern = MinusRevTranscriptaseC_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"])),
+                                      grep(pattern = EmptyWells_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"])),
+                                      grep(pattern = H2O_Pattern, x = as.character(RawCt_DF[,"gene_treat_ID"]))),]
+
+
+  #### for loop to calculate Delta Cts either using one or multiple controls
+
+  for (i in 1:length(PlatesDIRs)) {
+
+    plate_i_subset <- Control_depleted_mat[which(as.numeric(Control_depleted_mat[,3]) == i),]
+
+    #controlNr <- readline(prompt = "How many controls would you like to use for calculating DeltaCts (return 1 for only one control or return 2 for multiple)")
+
+    cat(paste0(paste0(1:length(as.character(plate_i_subset[,2])), ": ", as.character(plate_i_subset[,2])), collapse = " \n "))
+
+    control_indexes <- readline(prompt = "Could you please return the indexes of your controls ???? (please use numbers separated by spaces))")
+
+
+  }
+
+  return(control_indexes)
 
 }
 

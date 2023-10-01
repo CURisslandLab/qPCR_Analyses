@@ -16,7 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ### example mutliple plates
 
 PlatesDIRs = list("./20230622_ELG_TGFBTC_TR1_depurated.txt",
-                 "./20230622_ELG_TGFBTC_tr2_depurated.txt")
+                 "./20230622_ELG_TGFBTC_tr2_depurated.txt",
+                 "./20230622_ELG_TGFBTC_tr3_depurated.txt")
 
 InputPathTreatmentFiles = "./Treatment_Table.txt"
 
@@ -37,22 +38,53 @@ InputPathTreatmentFiles = "./cropped_Treatment_Table.txt"
 
 
 
+### Parameters to differentiate controls
+
 MinusRevTranscriptaseC_Pattern = "mRT"
 
 MinusRevTranscriptaseC_boundary = 30
 
-EmptyWells_Pattern = "E"
+EmptyWells_Pattern = "_E"
 
 EmptyWells_boundary = 15
 
-H2O_Pattern = "H2O"
+H2O_Pattern = "_H2O"
 
-H2O_boundary = 20
+H2O_boundary = 34
+
+
 
 #### main development
 
 running_example <- DeltaDeltaCtCc(qPCR_List_OR_Dir = PlatesDIRs,
                                   Treatment_Table_Dir = InputPathTreatmentFiles)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### Reviewing controls
